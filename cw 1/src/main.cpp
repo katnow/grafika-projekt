@@ -33,7 +33,7 @@ int main() {
         for (unsigned int j = 0; j < width; j++)
         {
             // retrieve texel for (i,j) tex coord
-            short* texel = terrainPositions + (j + width * i) * 1;
+            const float* texel = terrainPositions + (j + width * i) * 1;
             // raw height at coordinate
             unsigned char y = texel[0];
 
