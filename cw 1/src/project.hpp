@@ -7,16 +7,21 @@
 
 #include "Shader_Loader.h"
 #include "Render_Utils.h"
+#include "Texture.h"
+
 #include "Positions.cpp"
 
-const int width = 1500;
-const int height = 900;
+//#define STB_IMAGE_IMPLEMENTATION
+//#include "stb_image.h"
 
-const unsigned int NUM_STRIPS = height - 1;
+const int width = 3601;
+const int length = 3601;
+
+const unsigned int NUM_STRIPS = length - 1;
 const unsigned int NUM_VERTS_PER_STRIP = width * 2;
 
-const float yScale = 32.0f / 256.0f;
-const float yShift = 16.0f;
+const float yScale = 1.f/8.f;
+const float yShift = 32.f;
 
 std::vector<float> vertices;
 std::vector<unsigned int> indices;
@@ -34,6 +39,12 @@ glm::vec3 cameraDir = glm::vec3(1.f, 0.f, 0.f);
 glm::vec3 lightColor = glm::vec3(1.f, 1.f, 1.f);
 
 float aspectRatio = 8.f / 6.f;
+
+unsigned char* terrainTexture;
+
+namespace texture {
+    GLuint terrain;
+}
 
 glm::mat4 createCameraMatrix()
 {
@@ -57,7 +68,7 @@ glm::mat4 createPerspectiveMatrix()
 {
     glm::mat4 perspectiveMatrix;
     float n = 0.05;
-    float f = 1000.f;
+    float f = 4096.f;
     float a1 = glm::min(aspectRatio, 1.f);
     float a2 = glm::min(1 / aspectRatio, 1.f);
 
@@ -91,32 +102,36 @@ void drawObjectColor(Core::RenderContext& context, glm::mat4 modelMatrix, glm::v
     Core::DrawContext(context);
 }
 
-void renderTerrain(const float* heights, int width, int height) {
+void loadTerrainTexture() {
+    //int width, height, nrChannels;
+    //terrainTexture = stbi_load("img/.jpg", &width, &height, &nrChannels, 0);
+}
+
+void renderTerrain(const short* heights, int width, int height, GLuint textureID) {
     glUseProgram(shaderProgram);
 
-    // Set model matrix (adjust as needed)
     glm::mat4 modelMatrix = glm::mat4(1.0f);
-    modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, 0.0f)); // Adjust position as needed
+    modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, 0.0f));
 
-    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "modelMatrix"), 1, GL_FALSE, glm::value_ptr(modelMatrix));
-
-    // Set color for terrain (adjust as needed)
-    glUniform3f(glGetUniformLocation(shaderProgram, "color"), 1.0f, 1.0f, 1.0f);
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "modelMatrix"), 1, GL_FALSE, (float*)&modelMatrix);
 
     // Set up view-projection matrix and transformation
     glm::mat4 viewProjectionMatrix = createPerspectiveMatrix() * createCameraMatrix();
     glm::mat4 transformation = viewProjectionMatrix * modelMatrix;
-    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "transformation"), 1, GL_FALSE, glm::value_ptr(transformation));
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "transformation"), 1, GL_FALSE, (float*)&transformation);
 
     glUniform3f(glGetUniformLocation(shaderProgram, "lightPos"), 0, 0, 0);
     glUniform3f(glGetUniformLocation(shaderProgram, "cameraPos"), cameraPos.x, cameraPos.y, cameraPos.z);
     glUniform3f(glGetUniformLocation(shaderProgram, "lightColor"), lightColor.x, lightColor.y, lightColor.z);
 
-    // Bind vertex array object (VAO)
+    Core::SetActiveTexture(textureID, "colorTexture", shaderProgram, 0);
+
     glBindVertexArray(terrainVAO);
 
-    // Draw the terrain using GL_TRIANGLES / GL_TRIANGLE_STRIP
-    glDrawElements(GL_TRIANGLE_STRIP, NUM_STRIPS * NUM_VERTS_PER_STRIP, GL_UNSIGNED_INT, 0);
+    // Draw the terrain using 
+    // GL_POINTS, GL_LINE_STRIP, GL_LINE_LOOP, GL_LINES, GL_LINE_STRIP_ADJACENCY, GL_LINES_ADJACENCY, GL_TRIANGLE_STRIP,
+    // GL_TRIANGLE_FAN, GL_TRIANGLES, GL_TRIANGLE_STRIP_ADJACENCY, GL_TRIANGLES_ADJACENCY, GL_PATCHES
+    glDrawElements(GL_POINTS, NUM_STRIPS * NUM_VERTS_PER_STRIP, GL_UNSIGNED_INT, 0);
 
     glBindVertexArray(0);
     glUseProgram(0);
@@ -131,7 +146,7 @@ void renderScene(GLFWwindow* window)
     glm::mat4 transformation;
     float time = glfwGetTime();
 
-    renderTerrain(terrainPositions, width, height);
+    renderTerrain(terrainPositions[NUM_STRIPS], width, length, texture::terrain);
 
     glUseProgram(0);
     glfwSwapBuffers(window);
@@ -164,33 +179,32 @@ void init(GLFWwindow* window)
     glEnable(GL_DEPTH_TEST);
 
     shaderProgram = shaderLoader.CreateProgram("shaders/edges_shader.vert", "shaders/edges_shader.frag");
-
-    loadModelToContext("./models/sphere.obj", meshContext);
+    texture::terrain = Core::LoadTexture("textures/mapafinal2.jpg");
 
     // apply a scale+shift to the height data
-    for (unsigned int i = 0; i < height; i++)
+    for (unsigned int x = 0; x < length; x++)
     {
-        for (unsigned int j = 0; j < width; j++)
+        for (unsigned int z = 0; z < width; z++)
         {
             // retrieve texel for (i,j) tex coord
-            const float* texel = terrainPositions + (j + width * i) * 1;
+            short texel = terrainPositions[x][z];
             // raw height at coordinate
-            unsigned int y = texel[0];
+            unsigned int y = texel;
 
             // vertex
-            vertices.push_back(-height / 2.0f + i);        // v.x
+            vertices.push_back(x);        // v.x
             vertices.push_back((int)y * yScale - yShift); // v.y
-            vertices.push_back(-width / 2.0f + j);        // v.z
+            vertices.push_back(z);        // v.z
         }
     }
 
-    for (unsigned int i = 0; i < height - 1; i++)       // for each row a.k.a. each strip
+    for (unsigned int x = 0; x < width - 1; x++)       // for each row 
     {
-        for (unsigned int j = 0; j < width; j++)      // for each column
+        for (unsigned int z = 0; z < length; z++)      // for each column
         {
             for (unsigned int k = 0; k < 2; k++)      // for each side of the strip
             {
-                indices.push_back(j + width * (i + k));
+                indices.push_back(z + length * (x + k));
             }
         }
     }
@@ -234,7 +248,7 @@ void processInput(GLFWwindow* window)
 {
     glm::vec3 cameraSide = glm::normalize(glm::cross(cameraDir, glm::vec3(0.f, 1.f, 0.f)));
     glm::vec3 cameraUp = glm::vec3(0.f, 1.f, 0.f);
-    float angleSpeed = 0.001f;
+    float angleSpeed = 0.01f;
     float moveSpeed = 1.5f;
 
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
@@ -259,13 +273,11 @@ void processInput(GLFWwindow* window)
         cameraDir = glm::vec3(glm::eulerAngleY(-angleSpeed) * glm::vec4(cameraDir, 0));
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
         glm::vec3 axis = glm::normalize(glm::cross(cameraDir, cameraUp));
-        glm::quat rotation = glm::angleAxis(angleSpeed, axis);
-        cameraDir = glm::normalize(rotation * cameraDir);
+        cameraDir = glm::normalize(glm::angleAxis(-angleSpeed, axis) * cameraDir);
     }
     if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
         glm::vec3 axis = glm::normalize(glm::cross(cameraDir, cameraUp));
-        glm::quat rotation = glm::angleAxis(-angleSpeed, axis);
-        cameraDir = glm::normalize(rotation * cameraDir);
+        cameraDir = glm::normalize(glm::angleAxis(angleSpeed, axis) * cameraDir);
     }
 }
 

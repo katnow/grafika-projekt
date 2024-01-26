@@ -18,6 +18,9 @@
     <Filter Include="Source Files\SOIL">
       <UniqueIdentifier>{66029ce1-913b-4b25-9bb3-e5de40fe7724}</UniqueIdentifier>
     </Filter>
+    <Filter Include="img">
+      <UniqueIdentifier>{9c718f69-a910-4e82-8a85-3ee1b202144e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="S41W072.hgt" />
@@ -97,5 +100,13 @@
     <ClInclude Include="src\SOIL\stbi_DDS_aug_c.h">
       <Filter>Source Files\SOIL</Filter>
     </ClInclude>
+    <ClInclude Include="src\stb_image.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="img\mapafinal2.jpg">
+      <Filter>img</Filter>
+    </Image>
   </ItemGroup>
 </Project>
