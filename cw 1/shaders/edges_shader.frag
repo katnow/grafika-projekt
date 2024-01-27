@@ -21,5 +21,5 @@ void main()
 
 
 	float diffuse=max(0,dot(normal,lightDir));
-	outColor = vec4(1 + sampledColor * diffuse, 1.0);
+	outColor = vec4(0.2+ sampledColor * diffuse, 1.0);
 }
