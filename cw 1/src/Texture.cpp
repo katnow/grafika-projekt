@@ -23,6 +23,7 @@ GLuint Core::LoadTexture( const char * filepath )
 	
 	if (image == 0) {
 		std::cout << "Failed to load texture" << std::endl;
+		std::cout << SOIL_last_result() << std::endl;
 	}
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
