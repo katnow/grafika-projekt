@@ -21,6 +21,9 @@ GLuint Core::LoadTexture( const char * filepath )
 	int w, h;
 	unsigned char* image = SOIL_load_image(filepath, &w, &h, 0, SOIL_LOAD_RGBA);
 	
+	if (image == 0) {
+		std::cout << "Failed to load texture" << std::endl;
+	}
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
 	glGenerateMipmap(GL_TEXTURE_2D);
