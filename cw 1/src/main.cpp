@@ -35,7 +35,6 @@ int main(int argc, char** argv)
     // ladowanie OpenGL za pomoca glew
     glewInit();
     glViewport(0, 0, 800, 600);
-
     init(window);
 
     // uruchomienie glownej petli

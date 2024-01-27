@@ -87,26 +87,11 @@ glm::mat4 createPerspectiveMatrix()
     return perspectiveMatrix;
 }
 
-void drawObjectColor(Core::RenderContext& context, glm::mat4 modelMatrix, glm::vec3 color, GLuint program) {
-    GLuint prog = program;
-    glUseProgram(prog);
-
-    glm::mat4 viewProjectionMatrix = createPerspectiveMatrix() * createCameraMatrix();
-    glm::mat4 transformation = viewProjectionMatrix * modelMatrix;
-
-    glUniformMatrix4fv(glGetUniformLocation(prog, "transformation"), 1, GL_FALSE, (float*)&transformation);
-    glUniformMatrix4fv(glGetUniformLocation(prog, "modelMatrix"), 1, GL_FALSE, (float*)&modelMatrix);
-
-    glUniform3f(glGetUniformLocation(prog, "color"), color.x, color.y, color.z);
-    glUniform3f(glGetUniformLocation(prog, "lightPos"), 0, 0, 0);
-    glUniform3f(glGetUniformLocation(prog, "cameraPos"), cameraPos.x, cameraPos.y, cameraPos.z);
-    glUniform3f(glGetUniformLocation(prog, "lightColor"), lightColor.x, lightColor.y, lightColor.z);
-
-    Core::DrawContext(context);
-}
 
 void renderTerrain(const short* heights, int width, int height, GLuint textureID) {
     glUseProgram(shaderProgram);
+    
+    glUniform1i(glGetUniformLocation(shaderProgram, "colorTexture"), 0);
     glm::mat4 viewProjectionMatrix = createPerspectiveMatrix() * createCameraMatrix();
 
     glm::mat4 modelMatrix = glm::mat4(1.0f);
@@ -115,14 +100,12 @@ void renderTerrain(const short* heights, int width, int height, GLuint textureID
 
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "transformation"), 1, GL_FALSE, (float*)&transformation);
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "modelMatrix"), 1, GL_FALSE, (float*)&modelMatrix);
-    
 
     glUniform3f(glGetUniformLocation(shaderProgram, "lightPos"), 0, 0, 0);
     glUniform3f(glGetUniformLocation(shaderProgram, "lightColor"), lightColor.x, lightColor.y, lightColor.z);
     glUniform3f(glGetUniformLocation(shaderProgram, "cameraPos"), cameraPos.x, cameraPos.y, cameraPos.z);
 
-
-    Core::SetActiveTexture(textureID, "colorTexture", shaderProgram, 0);
+    Core::SetActiveTexture(textureID, "colorTexture", shaderProgram, GL_SAMPLER_2D);
 
     glBindVertexArray(terrainVAO);
 
@@ -177,7 +160,7 @@ void init(GLFWwindow* window)
     glEnable(GL_DEPTH_TEST);
 
     shaderProgram = shaderLoader.CreateProgram("shaders/edges_shader.vert", "shaders/edges_shader.frag");
-    texture::terrain = Core::LoadTexture("img/mapafinal2.jpg");
+    texture::terrain = Core::LoadTexture("img/mapafinal3.jpg");
 
     // apply a scale+shift to the height data
     for (unsigned int x = 0; x < length; x++)
