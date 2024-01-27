@@ -11,8 +11,6 @@
 
 #include "Positions.cpp"
 
-//#define STB_IMAGE_IMPLEMENTATION
-//#include "stb_image.h"
 
 const int width = 3601;
 const int length = 3601;
@@ -43,8 +41,11 @@ float aspectRatio = 8.f / 6.f;
 unsigned char* terrainTexture;
 
 namespace texture {
-    GLuint terrain;
+    GLuint terrain; 
 }
+
+
+
 
 glm::mat4 createCameraMatrix()
 {
@@ -84,45 +85,21 @@ glm::mat4 createPerspectiveMatrix()
     return perspectiveMatrix;
 }
 
-void drawObjectColor(Core::RenderContext& context, glm::mat4 modelMatrix, glm::vec3 color, GLuint program) {
-    GLuint prog = program;
-    glUseProgram(prog);
-
-    glm::mat4 viewProjectionMatrix = createPerspectiveMatrix() * createCameraMatrix();
-    glm::mat4 transformation = viewProjectionMatrix * modelMatrix;
-
-    glUniformMatrix4fv(glGetUniformLocation(prog, "transformation"), 1, GL_FALSE, (float*)&transformation);
-    glUniformMatrix4fv(glGetUniformLocation(prog, "modelMatrix"), 1, GL_FALSE, (float*)&modelMatrix);
-
-    glUniform3f(glGetUniformLocation(prog, "color"), color.x, color.y, color.z);
-    glUniform3f(glGetUniformLocation(prog, "lightPos"), 0, 0, 0);
-    glUniform3f(glGetUniformLocation(prog, "cameraPos"), cameraPos.x, cameraPos.y, cameraPos.z);
-    glUniform3f(glGetUniformLocation(prog, "lightColor"), lightColor.x, lightColor.y, lightColor.z);
-
-    Core::DrawContext(context);
-}
-
-void loadTerrainTexture() {
-    //int width, height, nrChannels;
-    //terrainTexture = stbi_load("img/.jpg", &width, &height, &nrChannels, 0);
-}
-
 void renderTerrain(const short* heights, int width, int height, GLuint textureID) {
     glUseProgram(shaderProgram);
+    glm::mat4 viewProjectionMatrix = createPerspectiveMatrix() * createCameraMatrix();
 
     glm::mat4 modelMatrix = glm::mat4(1.0f);
     modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, 0.0f));
+    glm::mat4 transformation = viewProjectionMatrix * modelMatrix;
 
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "transformation"), 1, GL_FALSE, (float*)&transformation);
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "modelMatrix"), 1, GL_FALSE, (float*)&modelMatrix);
 
-    // Set up view-projection matrix and transformation
-    glm::mat4 viewProjectionMatrix = createPerspectiveMatrix() * createCameraMatrix();
-    glm::mat4 transformation = viewProjectionMatrix * modelMatrix;
-    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "transformation"), 1, GL_FALSE, (float*)&transformation);
-
     glUniform3f(glGetUniformLocation(shaderProgram, "lightPos"), 0, 0, 0);
-    glUniform3f(glGetUniformLocation(shaderProgram, "cameraPos"), cameraPos.x, cameraPos.y, cameraPos.z);
     glUniform3f(glGetUniformLocation(shaderProgram, "lightColor"), lightColor.x, lightColor.y, lightColor.z);
+    glUniform3f(glGetUniformLocation(shaderProgram, "cameraPos"), cameraPos.x, cameraPos.y, cameraPos.z);
+
 
     Core::SetActiveTexture(textureID, "colorTexture", shaderProgram, 0);
 
@@ -131,7 +108,7 @@ void renderTerrain(const short* heights, int width, int height, GLuint textureID
     // Draw the terrain using 
     // GL_POINTS, GL_LINE_STRIP, GL_LINE_LOOP, GL_LINES, GL_LINE_STRIP_ADJACENCY, GL_LINES_ADJACENCY, GL_TRIANGLE_STRIP,
     // GL_TRIANGLE_FAN, GL_TRIANGLES, GL_TRIANGLE_STRIP_ADJACENCY, GL_TRIANGLES_ADJACENCY, GL_PATCHES
-    glDrawElements(GL_POINTS, NUM_STRIPS * NUM_VERTS_PER_STRIP, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, NUM_STRIPS * NUM_VERTS_PER_STRIP, GL_UNSIGNED_INT, 0);
 
     glBindVertexArray(0);
     glUseProgram(0);
@@ -179,7 +156,7 @@ void init(GLFWwindow* window)
     glEnable(GL_DEPTH_TEST);
 
     shaderProgram = shaderLoader.CreateProgram("shaders/edges_shader.vert", "shaders/edges_shader.frag");
-    texture::terrain = Core::LoadTexture("textures/mapafinal2.jpg");
+    texture::terrain = Core::LoadTexture("img/mapafinal3.jpg");
 
     // apply a scale+shift to the height data
     for (unsigned int x = 0; x < length; x++)
