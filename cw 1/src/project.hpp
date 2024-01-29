@@ -160,7 +160,7 @@ void init(GLFWwindow* window)
     glEnable(GL_DEPTH_TEST);
 
     shaderProgram = shaderLoader.CreateProgram("shaders/edges_shader.vert", "shaders/edges_shader.frag");
-    texture::terrain = Core::LoadTexture("img/mapafinal3.jpg");
+    texture::terrain = Core::LoadTexture("img/texture3.jpg");
 
     // apply a scale+shift to the height data
     for (unsigned int x = 0; x < length; x++)
