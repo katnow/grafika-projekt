@@ -179,14 +179,17 @@ void init(GLFWwindow* window)
         }
     }
 
-    for (unsigned int x = 0; x < width - 1; x++)       // for each row 
-    {
-        for (unsigned int z = 0; z < length; z++)      // for each column
-        {
-            for (unsigned int k = 0; k < 2; k++)      // for each side of the strip
-            {
-                indices.push_back(z + length * (x + k));
-            }
+    for (unsigned int x = 0; x < width - 1; x++) {
+        for (unsigned int z = 0; z < length - 1; z++) {
+            // Pierwszy trójk¹t w pasie
+            indices.push_back(z + length * x);
+            indices.push_back(z + length * (x + 1) + 1);
+            indices.push_back(z + length * (x + 1));
+
+            // Drugi trójk¹t w pasie
+            indices.push_back(z + length * x);
+            indices.push_back(z + length * x + 1);
+            indices.push_back(z + length * (x + 1) + 1);
         }
     }
 
