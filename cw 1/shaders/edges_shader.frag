@@ -1,6 +1,6 @@
 #version 430 core
 
-float AMBIENT = 0.2;
+float AMBIENT = 0.1;
 
 uniform vec3 color;
 uniform vec3 lightPos;
@@ -21,5 +21,5 @@ void main()
 
 
 	float diffuse=max(0,dot(normal,lightDir));
-	outColor = vec4(0.2+ sampledColor * diffuse, 1.0);
+	outColor = vec4(sampledColor, 1.0);
 }

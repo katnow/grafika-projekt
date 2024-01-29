@@ -9,6 +9,8 @@
 #include "Render_Utils.h"
 #include "Texture.h"
 
+#include "SOIL/SOIL.h"
+
 #include "Positions.cpp"
 
 
@@ -85,8 +87,11 @@ glm::mat4 createPerspectiveMatrix()
     return perspectiveMatrix;
 }
 
+
 void renderTerrain(const short* heights, int width, int height, GLuint textureID) {
     glUseProgram(shaderProgram);
+    
+    glUniform1i(glGetUniformLocation(shaderProgram, "colorTexture"), 0);
     glm::mat4 viewProjectionMatrix = createPerspectiveMatrix() * createCameraMatrix();
 
     glm::mat4 modelMatrix = glm::mat4(1.0f);
@@ -100,8 +105,7 @@ void renderTerrain(const short* heights, int width, int height, GLuint textureID
     glUniform3f(glGetUniformLocation(shaderProgram, "lightColor"), lightColor.x, lightColor.y, lightColor.z);
     glUniform3f(glGetUniformLocation(shaderProgram, "cameraPos"), cameraPos.x, cameraPos.y, cameraPos.z);
 
-
-    Core::SetActiveTexture(textureID, "colorTexture", shaderProgram, 0);
+    Core::SetActiveTexture(textureID, "colorTexture", shaderProgram, GL_SAMPLER_2D);
 
     glBindVertexArray(terrainVAO);
 

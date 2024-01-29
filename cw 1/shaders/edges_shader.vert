@@ -15,7 +15,6 @@ void main()
 {
 	worldPos = (modelMatrix* vec4(vertexPosition,1)).xyz;
 	vecNormal = (modelMatrix* vec4(vertexNormal,0)).xyz;
-	vecTex = vertexTexCoord;
-	vecTex.y = 1.0 - vecTex.y;
+	vecTex = vec2(-vertexTexCoord.x, -vertexTexCoord.y);
 	gl_Position = transformation * vec4(vertexPosition, 1.0);
 }

@@ -105,7 +105,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="img\mapafinal2.jpg">
+    <Image Include="img\mapafinal2.png">
       <Filter>img</Filter>
     </Image>
   </ItemGroup>
