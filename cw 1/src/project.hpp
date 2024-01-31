@@ -17,21 +17,18 @@
 const int width = 3601;
 const int length = 3601;
 
-const unsigned int NUM_STRIPS = length - 1;
-const unsigned int NUM_VERTS_PER_STRIP = width * 2;
-
 const float yScale = 1.f/8.f;
 const float yShift = 32.f;
 
-std::vector<float> vertices;
+std::vector<float> vertices, xzCoords;
 std::vector<unsigned int> indices;
 
-GLuint terrainVAO, terrainVBO, terrainEBO;
+GLuint terrainVAO, terrainVBO, terrainEBO, xzVBO;
 
 GLuint shaderProgram;
 Core::Shader_Loader shaderLoader;
 
-Core::RenderContext meshContext;
+Core::RenderContext terrainContext;
 
 glm::vec3 cameraPos = glm::vec3(-4.f, 0, 0);
 glm::vec3 cameraDir = glm::vec3(1.f, 0.f, 0.f);
@@ -45,9 +42,6 @@ unsigned char* terrainTexture;
 namespace texture {
     GLuint terrain; 
 }
-
-
-
 
 glm::mat4 createCameraMatrix()
 {
@@ -80,7 +74,7 @@ glm::mat4 createPerspectiveMatrix()
         0.,aspectRatio,0.,0.,
         0.,0.,(f + n) / (n - f),2 * f * n / (n - f),
         0.,0.,-1.,0.,
-        });
+     });
 
     perspectiveMatrix = glm::transpose(perspectiveMatrix);
 
@@ -88,14 +82,14 @@ glm::mat4 createPerspectiveMatrix()
 }
 
 
-void renderTerrain(const short* heights, int width, int height, GLuint textureID) {
+void renderTerrain() {
     glUseProgram(shaderProgram);
     
     glUniform1i(glGetUniformLocation(shaderProgram, "colorTexture"), 0);
     glm::mat4 viewProjectionMatrix = createPerspectiveMatrix() * createCameraMatrix();
 
     glm::mat4 modelMatrix = glm::mat4(1.0f);
-    modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, 0.0f));
+    //modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, 0.0f));
     glm::mat4 transformation = viewProjectionMatrix * modelMatrix;
 
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "transformation"), 1, GL_FALSE, (float*)&transformation);
@@ -104,32 +98,31 @@ void renderTerrain(const short* heights, int width, int height, GLuint textureID
     glUniform3f(glGetUniformLocation(shaderProgram, "lightPos"), 0, 0, 0);
     glUniform3f(glGetUniformLocation(shaderProgram, "lightColor"), lightColor.x, lightColor.y, lightColor.z);
     glUniform3f(glGetUniformLocation(shaderProgram, "cameraPos"), cameraPos.x, cameraPos.y, cameraPos.z);
-
-    Core::SetActiveTexture(textureID, "colorTexture", shaderProgram, GL_SAMPLER_2D);
+    Core::SetActiveTexture(texture::terrain, "colorTexture", shaderProgram, GL_SAMPLER_2D);
 
     glBindVertexArray(terrainVAO);
 
     // Draw the terrain using 
     // GL_POINTS, GL_LINE_STRIP, GL_LINE_LOOP, GL_LINES, GL_LINE_STRIP_ADJACENCY, GL_LINES_ADJACENCY, GL_TRIANGLE_STRIP,
     // GL_TRIANGLE_FAN, GL_TRIANGLES, GL_TRIANGLE_STRIP_ADJACENCY, GL_TRIANGLES_ADJACENCY, GL_PATCHES
-    glDrawElements(GL_TRIANGLES, NUM_STRIPS * NUM_VERTS_PER_STRIP, GL_UNSIGNED_INT, 0);
+    glDrawElements(
+        GL_TRIANGLES,
+        (width - 1) * (length - 1) * 6,
+        GL_UNSIGNED_INT, 
+        0
+    );
 
     glBindVertexArray(0);
     glUseProgram(0);
 }
-
 
 // funkcja renderujaca scene    
 void renderScene(GLFWwindow* window)
 {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glm::mat4 transformation;
-    float time = glfwGetTime();
+    renderTerrain();
 
-    renderTerrain(terrainPositions[NUM_STRIPS], width, length, texture::terrain);
-
-    glUseProgram(0);
     glfwSwapBuffers(window);
 
     glfwPollEvents();
@@ -141,26 +134,13 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
-void loadModelToContext(std::string path, Core::RenderContext& context)
-{
-    Assimp::Importer import;
-    const aiScene* scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_CalcTangentSpace);
-
-    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
-    {
-        std::cout << "ERROR::ASSIMP::" << import.GetErrorString() << std::endl;
-        return;
-    }
-    context.initFromAssimpMesh(scene->mMeshes[0]);
-}
-
 void init(GLFWwindow* window)
 {
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glEnable(GL_DEPTH_TEST);
 
     shaderProgram = shaderLoader.CreateProgram("shaders/edges_shader.vert", "shaders/edges_shader.frag");
-    texture::terrain = Core::LoadTexture("img/texture3.jpg");
+    texture::terrain = Core::LoadTexture("img/mapafinal3.jpg");
 
     // apply a scale+shift to the height data
     for (unsigned int x = 0; x < length; x++)
@@ -173,23 +153,26 @@ void init(GLFWwindow* window)
             unsigned int y = texel;
 
             // vertex
-            vertices.push_back(x);        // v.x
-            vertices.push_back((int)y * yScale - yShift); // v.y
-            vertices.push_back(z);        // v.z
+            vertices.push_back(1.0f * x);        // v.x
+            vertices.push_back(1.0f * z);        // v.z
+            vertices.push_back(1.0f * y * yScale - yShift); // v.y
+
+            // xzCoords.push_back(1.0f * x);
+            // xzCoords.push_back(1.0f * z);
         }
     }
 
     for (unsigned int x = 0; x < width - 1; x++) {
         for (unsigned int z = 0; z < length - 1; z++) {
-            // Pierwszy trójk¹t w pasie
+            // Pierwszy trï¿½jkï¿½t w pasie
             indices.push_back(z + length * x);
-            indices.push_back(z + length * (x + 1) + 1);
             indices.push_back(z + length * (x + 1));
-
-            // Drugi trójk¹t w pasie
-            indices.push_back(z + length * x);
-            indices.push_back(z + length * x + 1);
             indices.push_back(z + length * (x + 1) + 1);
+
+            // Drugi trï¿½jkï¿½t w pasie
+            indices.push_back(z + length * x);
+            indices.push_back(z + length * (x + 1) + 1);
+            indices.push_back(z + length * x + 1);
         }
     }
 
@@ -206,8 +189,15 @@ void init(GLFWwindow* window)
     );
 
     // position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * (sizeof(float)), (void*)0);
     glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 3 * (sizeof(float)), (void*)0);
+    glEnableVertexAttribArray(2);
+
+    //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)(3 * sizeof(float)));
+    //glEnableVertexAttribArray(1);
+
 
     glGenBuffers(1, &terrainEBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, terrainEBO);
@@ -217,10 +207,6 @@ void init(GLFWwindow* window)
         &indices[0],                           // pointer to first element
         GL_STATIC_DRAW
     );
-
-    // Tworzenie bufora wierzcho³ków
-
-    glBindVertexArray(terrainVAO);
 }
 
 void shutdown(GLFWwindow* window)

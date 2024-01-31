@@ -11,15 +11,14 @@ in vec3 worldPos;
 in vec2 vecTex;
 
 out vec4 outColor;
-void main()
-{
-	vec3 lightDir = normalize(lightPos-worldPos);
-	vec3 normal = normalize(vecNormal);
 
-	vec4 textureColor = texture(colorTexture, vecTex);
+void main() {
+    vec3 lightDir = normalize(lightPos - worldPos);
+    vec3 normal = normalize(vecNormal);
+
+    vec4 textureColor = texture(colorTexture, vecTex);
     vec3 sampledColor = textureColor.rgb;
 
-
-	float diffuse=max(0,dot(normal,lightDir));
-	outColor = vec4(sampledColor, 1.0);
+    float diffuse = max(0, dot(normal, lightDir));
+    outColor = vec4(sampledColor, 1.0);
 }
