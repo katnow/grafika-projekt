@@ -12,10 +12,11 @@ out vec3 worldPos;
 out vec2 vecTex;
 
 void main() {
-    vec3 vecPos = vertexPosition.xzy; 
+    vec3 vecPos = vertexPosition.xzy;
     worldPos = (modelMatrix * vec4(vecPos, 1)).xyz;
     vecNormal = (modelMatrix * vec4(vertexNormal, 0)).xyz;
-    vecTex = vertexTexCoord;
+    
+    vecTex = vec2(vertexTexCoord.y / 3600, vertexTexCoord.x / 3600)  ;
 
     gl_Position = transformation * vec4(vecPos, 1.0);
 }

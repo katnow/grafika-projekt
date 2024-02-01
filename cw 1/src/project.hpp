@@ -20,10 +20,10 @@ const int length = 3601;
 const float yScale = 1.f/8.f;
 const float yShift = 32.f;
 
-std::vector<float> vertices, xzCoords;
+std::vector<float> vertices;
 std::vector<unsigned int> indices;
 
-GLuint terrainVAO, terrainVBO, terrainEBO, xzVBO;
+GLuint terrainVAO, terrainVBO, terrainEBO;
 
 GLuint shaderProgram;
 Core::Shader_Loader shaderLoader;
@@ -53,7 +53,7 @@ glm::mat4 createCameraMatrix()
         cameraUp.x,cameraUp.y,cameraUp.z ,0,
         -cameraDir.x,-cameraDir.y,-cameraDir.z,0,
         0.,0.,0.,1.,
-        });
+    });
 
     cameraRotrationMatrix = glm::transpose(cameraRotrationMatrix);
     glm::mat4 cameraMatrix = cameraRotrationMatrix * glm::translate(-cameraPos);
@@ -81,11 +81,10 @@ glm::mat4 createPerspectiveMatrix()
     return perspectiveMatrix;
 }
 
-
 void renderTerrain() {
+    Core::SetActiveTexture(texture::terrain, "colorTexture", shaderProgram, 5);
     glUseProgram(shaderProgram);
     
-    glUniform1i(glGetUniformLocation(shaderProgram, "colorTexture"), 0);
     glm::mat4 viewProjectionMatrix = createPerspectiveMatrix() * createCameraMatrix();
 
     glm::mat4 modelMatrix = glm::mat4(1.0f);
@@ -98,7 +97,6 @@ void renderTerrain() {
     glUniform3f(glGetUniformLocation(shaderProgram, "lightPos"), 0, 0, 0);
     glUniform3f(glGetUniformLocation(shaderProgram, "lightColor"), lightColor.x, lightColor.y, lightColor.z);
     glUniform3f(glGetUniformLocation(shaderProgram, "cameraPos"), cameraPos.x, cameraPos.y, cameraPos.z);
-    Core::SetActiveTexture(texture::terrain, "colorTexture", shaderProgram, GL_SAMPLER_2D);
 
     glBindVertexArray(terrainVAO);
 
@@ -113,10 +111,8 @@ void renderTerrain() {
     );
 
     glBindVertexArray(0);
-    glUseProgram(0);
 }
 
-// funkcja renderujaca scene    
 void renderScene(GLFWwindow* window)
 {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -140,25 +136,21 @@ void init(GLFWwindow* window)
     glEnable(GL_DEPTH_TEST);
 
     shaderProgram = shaderLoader.CreateProgram("shaders/edges_shader.vert", "shaders/edges_shader.frag");
-    texture::terrain = Core::LoadTexture("img/mapafinal3.jpg");
+    texture::terrain = Core::LoadTexture("img/mapafinal_6952x9144.jpg");
 
-    // apply a scale+shift to the height data
     for (unsigned int x = 0; x < length; x++)
     {
         for (unsigned int z = 0; z < width; z++)
         {
-            // retrieve texel for (i,j) tex coord
+            // retrieve texel for (x,z) tex coord
             short texel = terrainPositions[x][z];
             // raw height at coordinate
             unsigned int y = texel;
-
+            
             // vertex
             vertices.push_back(1.0f * x);        // v.x
             vertices.push_back(1.0f * z);        // v.z
             vertices.push_back(1.0f * y * yScale - yShift); // v.y
-
-            // xzCoords.push_back(1.0f * x);
-            // xzCoords.push_back(1.0f * z);
         }
     }
 
@@ -183,18 +175,21 @@ void init(GLFWwindow* window)
     glBindBuffer(GL_ARRAY_BUFFER, terrainVBO);
     glBufferData(
         GL_ARRAY_BUFFER,
-        vertices.size() * sizeof(float),       // size of vertices buffer
-        &vertices[0],                          // pointer to first element
+        vertices.size() * sizeof(float),
+        &vertices[0],
         GL_STATIC_DRAW
     );
 
-    // position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * (sizeof(float)), (void*)0);
+
+    // vertexPosition
     glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * (sizeof(float)), (void*)0);
 
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 3 * (sizeof(float)), (void*)0);
+    // vertexTexCoord
     glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 3 * (sizeof(float)), (void*)0);
 
+    // vertexNormal
     //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)(3 * sizeof(float)));
     //glEnableVertexAttribArray(1);
 
@@ -203,8 +198,8 @@ void init(GLFWwindow* window)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, terrainEBO);
     glBufferData(
         GL_ELEMENT_ARRAY_BUFFER,
-        indices.size() * sizeof(unsigned int), // size of indices buffer
-        &indices[0],                           // pointer to first element
+        indices.size() * sizeof(unsigned int),
+        &indices[0],
         GL_STATIC_DRAW
     );
 }
@@ -218,8 +213,8 @@ void processInput(GLFWwindow* window)
 {
     glm::vec3 cameraSide = glm::normalize(glm::cross(cameraDir, glm::vec3(0.f, 1.f, 0.f)));
     glm::vec3 cameraUp = glm::vec3(0.f, 1.f, 0.f);
-    float angleSpeed = 0.01f;
-    float moveSpeed = 1.5f;
+    float angleSpeed = 0.02f;
+    float moveSpeed = 5.0f;
 
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
@@ -259,4 +254,8 @@ void renderLoop(GLFWwindow* window) {
         renderScene(window);
         glfwPollEvents();
     }
+
+    glDeleteVertexArrays(1, &terrainVAO);
+    glDeleteBuffers(1, &terrainVBO);
+    glDeleteBuffers(1, &terrainEBO);
 }
