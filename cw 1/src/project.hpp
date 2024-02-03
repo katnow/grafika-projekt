@@ -94,7 +94,7 @@ void renderTerrain() {
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "transformation"), 1, GL_FALSE, (float*)&transformation);
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "modelMatrix"), 1, GL_FALSE, (float*)&modelMatrix);
 
-    glUniform3f(glGetUniformLocation(shaderProgram, "lightPos"), 0, 0, 0);
+    glUniform3f(glGetUniformLocation(shaderProgram, "lightPos"), 1200, 500, 1200);
     glUniform3f(glGetUniformLocation(shaderProgram, "lightColor"), lightColor.x, lightColor.y, lightColor.z);
     glUniform3f(glGetUniformLocation(shaderProgram, "cameraPos"), cameraPos.x, cameraPos.y, cameraPos.z);
 
@@ -184,6 +184,10 @@ void init(GLFWwindow* window)
     // vertexPosition
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * (sizeof(float)), (void*)0);
+
+    // vertexNormal
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * (sizeof(float)), (void*)0);
+    glEnableVertexAttribArray(1);
     
     // vertexTexCoord
     glEnableVertexAttribArray(2);
