@@ -136,7 +136,7 @@ void init(GLFWwindow* window)
     glEnable(GL_DEPTH_TEST);
 
     shaderProgram = shaderLoader.CreateProgram("shaders/edges_shader.vert", "shaders/edges_shader.frag");
-    texture::terrain = Core::LoadTexture("img/mapafinal_6952x9144.jpg");
+    texture::terrain = Core::LoadTexture("img/mapa_highres2.jpg");
 
     for (unsigned int x = 0; x < length; x++)
     {
@@ -184,14 +184,11 @@ void init(GLFWwindow* window)
     // vertexPosition
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * (sizeof(float)), (void*)0);
-
+    
     // vertexTexCoord
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 3 * (sizeof(float)), (void*)0);
 
-    // vertexNormal
-    //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)(3 * sizeof(float)));
-    //glEnableVertexAttribArray(1);
 
 
     glGenBuffers(1, &terrainEBO);
