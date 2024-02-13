@@ -17,9 +17,6 @@
 const int width = 3601;
 const int length = 3601;
 
-const unsigned int NUM_STRIPS = length - 1;
-const unsigned int NUM_VERTS_PER_STRIP = width * 2;
-
 const float yScale = 1.f/8.f;
 const float yShift = 32.f;
 
@@ -31,7 +28,7 @@ GLuint terrainVAO, terrainVBO, terrainEBO;
 GLuint shaderProgram;
 Core::Shader_Loader shaderLoader;
 
-Core::RenderContext meshContext;
+Core::RenderContext terrainContext;
 
 glm::vec3 cameraPos = glm::vec3(-4.f, 0, 0);
 glm::vec3 cameraDir = glm::vec3(1.f, 0.f, 0.f);
@@ -46,9 +43,6 @@ namespace texture {
     GLuint terrain; 
 }
 
-
-
-
 glm::mat4 createCameraMatrix()
 {
     glm::vec3 cameraSide = glm::normalize(glm::cross(cameraDir, glm::vec3(0.f, 1.f, 0.f)));
@@ -59,7 +53,7 @@ glm::mat4 createCameraMatrix()
         cameraUp.x,cameraUp.y,cameraUp.z ,0,
         -cameraDir.x,-cameraDir.y,-cameraDir.z,0,
         0.,0.,0.,1.,
-        });
+    });
 
     cameraRotrationMatrix = glm::transpose(cameraRotrationMatrix);
     glm::mat4 cameraMatrix = cameraRotrationMatrix * glm::translate(-cameraPos);
@@ -80,56 +74,51 @@ glm::mat4 createPerspectiveMatrix()
         0.,aspectRatio,0.,0.,
         0.,0.,(f + n) / (n - f),2 * f * n / (n - f),
         0.,0.,-1.,0.,
-        });
+     });
 
     perspectiveMatrix = glm::transpose(perspectiveMatrix);
 
     return perspectiveMatrix;
 }
 
-
-void renderTerrain(const short* heights, int width, int height, GLuint textureID) {
+void renderTerrain() {
+    Core::SetActiveTexture(texture::terrain, "colorTexture", shaderProgram, 5);
     glUseProgram(shaderProgram);
     
-    glUniform1i(glGetUniformLocation(shaderProgram, "colorTexture"), 0);
     glm::mat4 viewProjectionMatrix = createPerspectiveMatrix() * createCameraMatrix();
 
     glm::mat4 modelMatrix = glm::mat4(1.0f);
-    modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, 0.0f));
+    //modelMatrix = glm::translate(modelMatrix, glm::vec3(0.0f, 0.0f, 0.0f));
     glm::mat4 transformation = viewProjectionMatrix * modelMatrix;
 
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "transformation"), 1, GL_FALSE, (float*)&transformation);
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "modelMatrix"), 1, GL_FALSE, (float*)&modelMatrix);
 
-    glUniform3f(glGetUniformLocation(shaderProgram, "lightPos"), 0, 0, 0);
+    glUniform3f(glGetUniformLocation(shaderProgram, "lightPos"), 1200, 500, 1200);
     glUniform3f(glGetUniformLocation(shaderProgram, "lightColor"), lightColor.x, lightColor.y, lightColor.z);
     glUniform3f(glGetUniformLocation(shaderProgram, "cameraPos"), cameraPos.x, cameraPos.y, cameraPos.z);
-
-    Core::SetActiveTexture(textureID, "colorTexture", shaderProgram, GL_SAMPLER_2D);
 
     glBindVertexArray(terrainVAO);
 
     // Draw the terrain using 
     // GL_POINTS, GL_LINE_STRIP, GL_LINE_LOOP, GL_LINES, GL_LINE_STRIP_ADJACENCY, GL_LINES_ADJACENCY, GL_TRIANGLE_STRIP,
     // GL_TRIANGLE_FAN, GL_TRIANGLES, GL_TRIANGLE_STRIP_ADJACENCY, GL_TRIANGLES_ADJACENCY, GL_PATCHES
-    glDrawElements(GL_TRIANGLES, NUM_STRIPS * NUM_VERTS_PER_STRIP, GL_UNSIGNED_INT, 0);
+    glDrawElements(
+        GL_TRIANGLES,
+        (width - 1) * (length - 1) * 6,
+        GL_UNSIGNED_INT, 
+        0
+    );
 
     glBindVertexArray(0);
-    glUseProgram(0);
 }
 
-
-// funkcja renderujaca scene    
 void renderScene(GLFWwindow* window)
 {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glm::mat4 transformation;
-    float time = glfwGetTime();
+    renderTerrain();
 
-    renderTerrain(terrainPositions[NUM_STRIPS], width, length, texture::terrain);
-
-    glUseProgram(0);
     glfwSwapBuffers(window);
 
     glfwPollEvents();
@@ -141,55 +130,41 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
-void loadModelToContext(std::string path, Core::RenderContext& context)
-{
-    Assimp::Importer import;
-    const aiScene* scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_CalcTangentSpace);
-
-    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
-    {
-        std::cout << "ERROR::ASSIMP::" << import.GetErrorString() << std::endl;
-        return;
-    }
-    context.initFromAssimpMesh(scene->mMeshes[0]);
-}
-
 void init(GLFWwindow* window)
 {
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glEnable(GL_DEPTH_TEST);
 
     shaderProgram = shaderLoader.CreateProgram("shaders/edges_shader.vert", "shaders/edges_shader.frag");
-    texture::terrain = Core::LoadTexture("img/texture3.jpg");
+    texture::terrain = Core::LoadTexture("img/mapa_highres2.jpg");
 
-    // apply a scale+shift to the height data
     for (unsigned int x = 0; x < length; x++)
     {
         for (unsigned int z = 0; z < width; z++)
         {
-            // retrieve texel for (i,j) tex coord
+            // retrieve texel for (x,z) tex coord
             short texel = terrainPositions[x][z];
             // raw height at coordinate
             unsigned int y = texel;
-
+            
             // vertex
-            vertices.push_back(x);        // v.x
-            vertices.push_back((int)y * yScale - yShift); // v.y
-            vertices.push_back(z);        // v.z
+            vertices.push_back(1.0f * x);        // v.x
+            vertices.push_back(1.0f * z);        // v.z
+            vertices.push_back(1.0f * y * yScale - yShift); // v.y
         }
     }
 
     for (unsigned int x = 0; x < width - 1; x++) {
         for (unsigned int z = 0; z < length - 1; z++) {
-            // Pierwszy trójk¹t w pasie
+            // Pierwszy trï¿½jkï¿½t w pasie
             indices.push_back(z + length * x);
-            indices.push_back(z + length * (x + 1) + 1);
             indices.push_back(z + length * (x + 1));
-
-            // Drugi trójk¹t w pasie
-            indices.push_back(z + length * x);
-            indices.push_back(z + length * x + 1);
             indices.push_back(z + length * (x + 1) + 1);
+
+            // Drugi trï¿½jkï¿½t w pasie
+            indices.push_back(z + length * x);
+            indices.push_back(z + length * (x + 1) + 1);
+            indices.push_back(z + length * x + 1);
         }
     }
 
@@ -200,27 +175,34 @@ void init(GLFWwindow* window)
     glBindBuffer(GL_ARRAY_BUFFER, terrainVBO);
     glBufferData(
         GL_ARRAY_BUFFER,
-        vertices.size() * sizeof(float),       // size of vertices buffer
-        &vertices[0],                          // pointer to first element
+        vertices.size() * sizeof(float),
+        &vertices[0],
         GL_STATIC_DRAW
     );
 
-    // position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+    // vertexPosition
     glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * (sizeof(float)), (void*)0);
+
+    // vertexNormal
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * (sizeof(float)), (void*)0);
+    glEnableVertexAttribArray(1);
+    
+    // vertexTexCoord
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 3 * (sizeof(float)), (void*)0);
+
+
 
     glGenBuffers(1, &terrainEBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, terrainEBO);
     glBufferData(
         GL_ELEMENT_ARRAY_BUFFER,
-        indices.size() * sizeof(unsigned int), // size of indices buffer
-        &indices[0],                           // pointer to first element
+        indices.size() * sizeof(unsigned int),
+        &indices[0],
         GL_STATIC_DRAW
     );
-
-    // Tworzenie bufora wierzcho³ków
-
-    glBindVertexArray(terrainVAO);
 }
 
 void shutdown(GLFWwindow* window)
@@ -232,8 +214,8 @@ void processInput(GLFWwindow* window)
 {
     glm::vec3 cameraSide = glm::normalize(glm::cross(cameraDir, glm::vec3(0.f, 1.f, 0.f)));
     glm::vec3 cameraUp = glm::vec3(0.f, 1.f, 0.f);
-    float angleSpeed = 0.01f;
-    float moveSpeed = 1.5f;
+    float angleSpeed = 0.02f;
+    float moveSpeed = 5.0f;
 
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
@@ -273,4 +255,8 @@ void renderLoop(GLFWwindow* window) {
         renderScene(window);
         glfwPollEvents();
     }
+
+    glDeleteVertexArrays(1, &terrainVAO);
+    glDeleteBuffers(1, &terrainVBO);
+    glDeleteBuffers(1, &terrainEBO);
 }

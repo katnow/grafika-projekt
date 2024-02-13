@@ -7,14 +7,22 @@ layout(location = 2) in vec2 vertexTexCoord;
 uniform mat4 transformation;
 uniform mat4 modelMatrix;
 
+uniform vec3 cameraPos;
+
 out vec3 vecNormal;
 out vec3 worldPos;
 out vec2 vecTex;
 
-void main()
-{
-	worldPos = (modelMatrix* vec4(vertexPosition,1)).xyz;
-	vecNormal = (modelMatrix* vec4(vertexNormal,0)).xyz;
-	vecTex = vec2(-vertexTexCoord.x, -vertexTexCoord.y);
-	gl_Position = transformation * vec4(vertexPosition, 1.0);
+out vec3 viewDir;
+
+void main() {
+    vec3 vecPos = vertexPosition.xzy;
+    worldPos = (modelMatrix * vec4(vecPos, 1)).xyz;
+    vecNormal = (modelMatrix * vec4(vertexNormal, 0)).xyz;
+    
+    vecTex = vec2(vertexTexCoord.y / 3600, vertexTexCoord.x / 3600)  ;
+
+    gl_Position = transformation * vec4(vecPos, 1.0);
+
+    viewDir = normalize(cameraPos-worldPos);
 }
