@@ -14,7 +14,7 @@ in vec3 viewDir;
 
 out vec4 outColor;
 
-vec3 phongLight(vec3 lightDir, vec3 color, vec3 normal,vec3 viewDir){
+vec3 phongLight(vec3 lightDir, vec3 color, vec3 normal, vec3 viewDir) {
 	float diffuse=max(0,dot(normal,lightDir));
 
 	vec3 R = reflect(-lightDir, normal);  
